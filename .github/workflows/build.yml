@@ -83,6 +83,7 @@ jobs:
       - name: Copy README.md & LICENSE
         run: |
           cp -r ${GITHUB_WORKSPACE}/data ./build_assets/data
+          mv ./build_assets/data/config.json ./build_assets/config.json.example
           cp ${GITHUB_WORKSPACE}/docs/README.md ./build_assets/README.md
           cp ${GITHUB_WORKSPACE}/LICENSE ./build_assets/LICENSE
 
