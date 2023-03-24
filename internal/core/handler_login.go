@@ -28,6 +28,7 @@ func (s *Session) OnGetPlayerTokenReq(from, to mapper.Protocol, data []byte) ([]
 }
 
 type GetPlayerTokenRsp struct {
+	Uid           uint32 `json:"uid,omitempty"`
 	KeyID         uint32 `json:"keyId,omitempty"`
 	ServerRandKey string `json:"serverRandKey,omitempty"`
 }
@@ -38,6 +39,7 @@ func (s *Session) OnGetPlayerTokenRsp(from, to mapper.Protocol, data []byte) ([]
 	if err != nil {
 		return data, err
 	}
+	s.playerUid = packet.Uid
 	seed, err := s.keys.ClientKeys[packet.KeyID].DecryptBase64(packet.ServerRandKey)
 	if err != nil {
 		return data, err

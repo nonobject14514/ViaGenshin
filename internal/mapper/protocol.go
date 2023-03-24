@@ -51,13 +51,21 @@ func (m *Mapping) loadProtocol(v Protocol, dir string) error {
 			continue
 		}
 	}
-	for _, name := range AbilityInvokeArgumentTypes {
+	for _, name := range AbilityInvokeArguments {
+		if name == "" {
+			continue
+		}
 		if err := m.parseMessageDesc(parser, v, name); err != nil {
+			logger.Warn().Err(err).Msgf("Failed to parse message desc for %s in %s", name, v)
 			continue
 		}
 	}
-	for _, name := range CombatArgumentTypes {
+	for _, name := range CombatTypeArguments {
+		if name == "" {
+			continue
+		}
 		if err := m.parseMessageDesc(parser, v, name); err != nil {
+			logger.Warn().Err(err).Msgf("Failed to parse message desc for %s in %s", name, v)
 			continue
 		}
 	}

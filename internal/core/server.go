@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"sync"
+
+	"github.com/jhump/protoreflect/dynamic"
 
 	"github.com/Jx2f/ViaGenshin/internal/config"
 	"github.com/Jx2f/ViaGenshin/internal/mapper"
@@ -77,6 +80,13 @@ type Session struct {
 
 	loginRand uint64
 	loginKey  *mt19937.KeyBlock
+	playerUid uint32
+
+	injectPrivateChat     bool
+	injectPullPrivateChat bool
+	injectPullRecentChat  bool
+
+	injectGmTalk bool
 }
 
 func newSession(s *Server, endpoint *kcp.Session) *Session {
@@ -148,7 +158,6 @@ func (s *Session) ConvertPayload(
 	}
 	b := bytes.NewBuffer(payload[2 : n-2])
 	fromCmd := binary.BigEndian.Uint16(b.Next(2))
-	toCmd := s.mapping.CommandPairMap[from][to][fromCmd]
 	n1 := binary.BigEndian.Uint16(b.Next(2))
 	n2 := binary.BigEndian.Uint32(b.Next(4))
 	if uint32(n) != 12+uint32(n1)+n2 {
@@ -156,24 +165,12 @@ func (s *Session) ConvertPayload(
 	}
 	head := b.Next(int(n1))
 	fromData := b.Next(int(n2))
-	toData, err := s.ConvertPacket(from, to, fromCmd, fromData)
+	toCmd := s.mapping.CommandPairMap[from][to][fromCmd]
+	toData, err := s.ConvertPacket(from, to, fromCmd, head, fromData)
 	if err != nil {
 		return err
 	}
-	b = bytes.NewBuffer(nil)
-	b.Write([]byte{0x45, 0x67})
-	binary.Write(b, binary.BigEndian, uint16(toCmd))
-	binary.Write(b, binary.BigEndian, uint16(len(head)))
-	binary.Write(b, binary.BigEndian, uint32(len(toData)))
-	b.Write(head)
-	b.Write(toData)
-	b.Write([]byte{0x89, 0xAB})
-	payload = b.Bytes()
-	name := s.mapping.CommandNameMap[to][toCmd]
-	if err := s.EncryptPayload(payload, name == "GetPlayerTokenReq" || name == "GetPlayerTokenRsp"); err != nil {
-		return err
-	}
-	return toSession.SendPayload(payload)
+	return s.SendPacket(toSession, to, toCmd, head, toData)
 }
 
 func (s *Session) EncryptPayload(payload transport.Payload, first bool) error {
@@ -193,4 +190,38 @@ func (s *Session) EncryptPayload(payload transport.Payload, first bool) error {
 	}
 	s.keys.SharedKey.Xor(payload)
 	return nil
+}
+
+func (s *Session) SendPacket(toSession *kcp.Session, to mapper.Protocol, toCmd uint16, toHead, toData []byte) error {
+	b := bytes.NewBuffer(nil)
+	b.Write([]byte{0x45, 0x67})
+	binary.Write(b, binary.BigEndian, toCmd)
+	binary.Write(b, binary.BigEndian, uint16(len(toHead)))
+	binary.Write(b, binary.BigEndian, uint32(len(toData)))
+	b.Write(toHead)
+	b.Write(toData)
+	b.Write([]byte{0x89, 0xAB})
+	payload := b.Bytes()
+	name := s.mapping.CommandNameMap[to][toCmd]
+	if err := s.EncryptPayload(payload, name == "GetPlayerTokenReq" || name == "GetPlayerTokenRsp"); err != nil {
+		return err
+	}
+	return toSession.SendPayload(payload)
+}
+
+func (s *Session) SendPacketJSON(toSession *kcp.Session, to mapper.Protocol, name string, toHead, data []byte) error {
+	toCmd := s.mapping.CommandPairMap[s.mapping.BaseProtocol][to][s.mapping.BaseCommands[name]]
+	toDesc := s.mapping.MessageDescMap[to][name]
+	if toDesc == nil {
+		return fmt.Errorf("unknown to message %s in %s", name, to)
+	}
+	toPacket := dynamic.NewMessage(toDesc)
+	if err := toPacket.UnmarshalJSONPB(UnmarshalOptions, data); err != nil {
+		return err
+	}
+	toData, err := toPacket.Marshal()
+	if err != nil {
+		return err
+	}
+	return s.SendPacket(toSession, to, toCmd, toHead, toData)
 }

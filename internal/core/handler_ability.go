@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/Jx2f/ViaGenshin/internal/mapper"
+	"github.com/Jx2f/ViaGenshin/pkg/logger"
 )
 
 type AbilityInvokeEntryHead struct {
@@ -40,23 +41,7 @@ func (s *Session) OnClientAbilityChangeNotify(from, to mapper.Protocol, data []b
 	if err != nil {
 		return data, err
 	}
-	var invokes []*AbilityInvokeEntry
-	for _, invoke := range notify.Invokes {
-		if len(invoke.AbilityData) == 0 {
-			invokes = append(invokes, invoke)
-			continue
-		}
-		name := mapper.AbilityInvokeArgumentTypes[invoke.ArgumentType]
-		if name == "" {
-			continue
-		}
-		invoke.AbilityData, err = s.ConvertPacketByName(from, to, name, invoke.AbilityData)
-		if err != nil {
-			return data, err
-		}
-		invokes = append(invokes, invoke)
-	}
-	notify.Invokes = invokes
+	notify.Invokes = s.OnAbilityInvocations(from, to, notify.Invokes)
 	return json.Marshal(notify)
 }
 
@@ -70,22 +55,29 @@ func (s *Session) OnAbilityInvocationsNotify(from, to mapper.Protocol, data []by
 	if err != nil {
 		return data, err
 	}
-	var invokes []*AbilityInvokeEntry
-	for _, invoke := range notify.Invokes {
+	notify.Invokes = s.OnAbilityInvocations(from, to, notify.Invokes)
+	return json.Marshal(notify)
+}
+
+func (s *Session) OnAbilityInvocations(from, to mapper.Protocol, in []*AbilityInvokeEntry) []*AbilityInvokeEntry {
+	var out []*AbilityInvokeEntry
+	var err error
+	for _, invoke := range in {
 		if len(invoke.AbilityData) == 0 {
-			invokes = append(invokes, invoke)
+			out = append(out, invoke)
 			continue
 		}
-		name := mapper.AbilityInvokeArgumentTypes[invoke.ArgumentType]
+		name := mapper.AbilityInvokeArguments[invoke.ArgumentType]
 		if name == "" {
+			logger.Debug().Msgf("Unknown ability invoke packet %d", invoke.ArgumentType)
 			continue
 		}
 		invoke.AbilityData, err = s.ConvertPacketByName(from, to, name, invoke.AbilityData)
 		if err != nil {
-			return data, err
+			logger.Debug().Err(err).Msgf("Failed to convert ability invoke packet %s", name)
+			continue
 		}
-		invokes = append(invokes, invoke)
+		out = append(out, invoke)
 	}
-	notify.Invokes = invokes
-	return json.Marshal(notify)
+	return out
 }

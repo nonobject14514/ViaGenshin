@@ -14,9 +14,15 @@ type Config struct {
 	Keys      *ConfigKeys      `json:"keys,omitempty"`
 }
 
+type ConfigConsole struct {
+	Enabled      bool   `json:"enabled,omitempty"`
+	MuipEndpoint string `json:"muipEndpoint,omitempty"`
+}
+
 type ConfigEndpoints struct {
 	MainEndpoint string              `json:"mainEndpoint,omitempty"`
 	MainProtocol Protocol            `json:"mainProtocol,omitempty"`
+	Console      *ConfigConsole      `json:"console,omitempty"`
 	Mapping      map[Protocol]string `json:"mapping,omitempty"`
 }
 
@@ -45,6 +51,9 @@ func LoadConfig(path string) (*Config, error) {
 	if c.Endpoints == nil {
 		return nil, errors.New("no endpoint configured")
 	}
+	if c.Endpoints.Console == nil {
+		c.Endpoints.Console = &ConfigConsole{}
+	}
 	if c.Protocols == nil {
 		return nil, errors.New("no protocol configured")
 	}
@@ -55,9 +64,14 @@ func LoadConfig(path string) (*Config, error) {
 }
 
 var DefaultConfig = &Config{
+	LogLevel: "info",
 	Endpoints: &ConfigEndpoints{
 		MainEndpoint: "{{ UPSTREAM_SERVER_ADDRESS }}",
 		MainProtocol: "{{ UPSTREAM_SERVER_VERSION }}",
+		Console: &ConfigConsole{
+			Enabled:      false,
+			MuipEndpoint: "http://{{ MUIP_SERVER_ADDRESS }}/api",
+		},
 		Mapping: map[Protocol]string{
 			"{{ CLIENT_VERSION }}": "{{ SERVICE_LISTEN_ADDRESS }}",
 		},

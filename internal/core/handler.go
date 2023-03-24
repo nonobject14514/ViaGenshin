@@ -6,7 +6,7 @@ import (
 	"github.com/Jx2f/ViaGenshin/internal/mapper"
 )
 
-func (s *Session) HandlePacket(from, to mapper.Protocol, name string, data []byte) ([]byte, error) {
+func (s *Session) HandlePacket(from, to mapper.Protocol, name string, head, data []byte) ([]byte, error) {
 	switch name {
 	case "GetPlayerTokenReq":
 		return s.OnGetPlayerTokenReq(from, to, data)
@@ -20,6 +20,25 @@ func (s *Session) HandlePacket(from, to mapper.Protocol, name string, data []byt
 		return s.OnAbilityInvocationsNotify(from, to, data)
 	case "CombatInvocationsNotify":
 		return s.OnCombatInvocationsNotify(from, to, data)
+	}
+	if !s.config.Console.Enabled {
+		return data, nil
+	}
+	switch name {
+	case "GetPlayerFriendListRsp":
+		return s.OnGetPlayerFriendListRsp(from, to, data)
+	case "PrivateChatReq":
+		return s.OnPrivateChatReq(from, to, head, data)
+	case "PrivateChatRsp":
+		return s.OnPrivateChatRsp(from, to, data)
+	case "PullPrivateChatReq":
+		return s.OnPullPrivateChatReq(from, to, data)
+	case "PullPrivateChatRsp":
+		return s.OnPullPrivateChatRsp(from, to, data)
+	case "PullRecentChatReq":
+		return s.OnPullRecentChatReq(from, to, data)
+	case "PullRecentChatRsp":
+		return s.OnPullRecentChatRsp(from, to, data)
 	}
 	return data, nil
 }

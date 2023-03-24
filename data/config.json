@@ -3,6 +3,10 @@
   "endpoints": {
     "mainEndpoint": "{{ UPSTREAM_SERVER_ADDRESS }}",
     "mainProtocol": "{{ UPSTREAM_SERVER_VERSION }}",
+    "console": {
+      "enabled": false,
+      "muipEndpoint": "http://{{ MUIP_SERVER_ADDRESS }}/api"
+    },
     "mapping": {
       "{{ CLIENT_VERSION }}": "{{ SERVICE_LISTEN_ADDRESS }}"
     }

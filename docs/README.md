@@ -8,6 +8,7 @@ Allows the connection of newer clients to older Genshin servers.
 
 - `endpoints.mainEndpoint` - The upstream server `ViaGenshin` will connect to.
 - `endpoints.mainProtocol` - The upstream server protocol version.
+- `endpoints.console` - Enable the chat GM console for client.
 - `endpoints.mapping` - Map the downstream client protocol version to the `ViaGenshin` listening port.
 - `protocols.baseProtocol` - The base protocol version `ViaGenshin` will use.
 - `protocols.mapping` - Map the protocol version to its file location.

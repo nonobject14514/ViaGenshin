@@ -19,11 +19,11 @@ var (
 	}
 )
 
-func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, p []byte) ([]byte, error) {
+func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, head, p []byte) ([]byte, error) {
 	name := s.mapping.CommandNameMap[from][fromCmd]
 	fromDesc := s.mapping.MessageDescMap[from][name]
 	if fromDesc == nil {
-		return p, fmt.Errorf("unknown from message %s in %s", name, to)
+		return p, fmt.Errorf("unknown from message %s in %s", name, from)
 	}
 	fromPacket := dynamic.NewMessage(fromDesc)
 	if err := fromPacket.Unmarshal(p); err != nil {
@@ -33,7 +33,7 @@ func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, p []by
 	if err != nil {
 		return p, err
 	}
-	toJson, err := s.HandlePacket(from, to, name, fromJson)
+	toJson, err := s.HandlePacket(from, to, name, head, fromJson)
 	if err != nil {
 		return p, err
 	}
@@ -56,7 +56,7 @@ func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, p []by
 func (s *Session) ConvertPacketByName(from, to mapper.Protocol, name string, p []byte) ([]byte, error) {
 	fromDesc := s.mapping.MessageDescMap[from][name]
 	if fromDesc == nil {
-		return p, fmt.Errorf("unknown from message %s in %s", name, to)
+		return p, fmt.Errorf("unknown from message %s in %s", name, from)
 	}
 	fromPacket := dynamic.NewMessage(fromDesc)
 	if err := fromPacket.Unmarshal(p); err != nil {
@@ -66,7 +66,7 @@ func (s *Session) ConvertPacketByName(from, to mapper.Protocol, name string, p [
 	if err != nil {
 		return p, err
 	}
-	toJson, err := s.HandlePacket(from, to, name, fromJson)
+	toJson, err := s.HandlePacket(from, to, name, nil, fromJson)
 	if err != nil {
 		return p, err
 	}

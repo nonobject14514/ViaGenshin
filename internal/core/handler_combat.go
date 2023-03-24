@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/Jx2f/ViaGenshin/internal/mapper"
+	"github.com/Jx2f/ViaGenshin/pkg/logger"
 )
 
 type CombatInvokeEntry struct {
@@ -22,22 +23,29 @@ func (s *Session) OnCombatInvocationsNotify(from, to mapper.Protocol, data []byt
 	if err != nil {
 		return data, err
 	}
-	var invokes []*CombatInvokeEntry
-	for _, invoke := range notify.InvokeList {
+	notify.InvokeList = s.OnCombatInvocations(from, to, notify.InvokeList)
+	return json.Marshal(notify)
+}
+
+func (s *Session) OnCombatInvocations(from, to mapper.Protocol, in []*CombatInvokeEntry) []*CombatInvokeEntry {
+	var out []*CombatInvokeEntry
+	var err error
+	for _, invoke := range in {
 		if len(invoke.CombatData) == 0 {
-			invokes = append(invokes, invoke)
+			out = append(out, invoke)
 			continue
 		}
-		name := mapper.CombatArgumentTypes[invoke.ArgumentType]
+		name := mapper.CombatTypeArguments[invoke.ArgumentType]
 		if name == "" {
+			logger.Debug().Msgf("Unknown combat invoke packet %d", invoke.ArgumentType)
 			continue
 		}
 		invoke.CombatData, err = s.ConvertPacketByName(from, to, name, invoke.CombatData)
 		if err != nil {
-			return data, err
+			logger.Debug().Err(err).Msgf("Failed to convert combat invoke packet %s", name)
+			continue
 		}
-		invokes = append(invokes, invoke)
+		out = append(out, invoke)
 	}
-	notify.InvokeList = invokes
-	return json.Marshal(notify)
+	return out
 }
