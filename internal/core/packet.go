@@ -5,26 +5,16 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/jhump/protoreflect/dynamic"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/Jx2f/ViaGenshin/internal/mapper"
 	"github.com/Jx2f/ViaGenshin/pkg/logger"
 )
 
 var (
-	MarshalOptions = &protojson.MarshalOptions{
-		AllowPartial:   true,
-		UseEnumNumbers: true,
-	}
-	UnmarshalOptions = &protojson.UnmarshalOptions{
-		AllowPartial:   true,
-		DiscardUnknown: true,
-	}
-
-	Marshaler = &jsonpb.Marshaler{
+	MarshalOptions = &jsonpb.Marshaler{
 		EnumsAsInts: true,
 	}
-	Unmarshaler = &jsonpb.Unmarshaler{
+	UnmarshalOptions = &jsonpb.Unmarshaler{
 		AllowUnknownFields: true,
 	}
 )
@@ -39,7 +29,7 @@ func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, p []by
 	if err := fromPacket.Unmarshal(p); err != nil {
 		return p, err
 	}
-	fromJson, err := fromPacket.MarshalJSONPB(Marshaler)
+	fromJson, err := fromPacket.MarshalJSONPB(MarshalOptions)
 	if err != nil {
 		return p, err
 	}
@@ -53,10 +43,10 @@ func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, p []by
 		return p, fmt.Errorf("unknown to message %s in %s", name, to)
 	}
 	toPacket := dynamic.NewMessage(toDesc)
-	if err := toPacket.UnmarshalJSONPB(Unmarshaler, toJson); err != nil {
+	if err := toPacket.UnmarshalJSONPB(UnmarshalOptions, toJson); err != nil {
 		return p, err
 	}
-	toJson, err = toPacket.MarshalJSONPB(Marshaler)
+	toJson, err = toPacket.MarshalJSONPB(MarshalOptions)
 	if err != nil {
 		return p, err
 	}
@@ -72,7 +62,7 @@ func (s *Session) ConvertPacketByName(from, to mapper.Protocol, name string, p [
 	if err := fromPacket.Unmarshal(p); err != nil {
 		return p, err
 	}
-	fromJson, err := fromPacket.MarshalJSONPB(Marshaler)
+	fromJson, err := fromPacket.MarshalJSONPB(MarshalOptions)
 	if err != nil {
 		return p, err
 	}
@@ -86,10 +76,10 @@ func (s *Session) ConvertPacketByName(from, to mapper.Protocol, name string, p [
 		return p, fmt.Errorf("unknown to message %s in %s", name, to)
 	}
 	toPacket := dynamic.NewMessage(toDesc)
-	if err := toPacket.UnmarshalJSONPB(Unmarshaler, toJson); err != nil {
+	if err := toPacket.UnmarshalJSONPB(UnmarshalOptions, toJson); err != nil {
 		return p, err
 	}
-	toJson, err = toPacket.MarshalJSONPB(Marshaler)
+	toJson, err = toPacket.MarshalJSONPB(MarshalOptions)
 	if err != nil {
 		return p, err
 	}

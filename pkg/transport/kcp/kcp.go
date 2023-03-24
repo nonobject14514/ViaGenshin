@@ -39,6 +39,6 @@ func (l LoggingLevel) enabled(level LoggingLevel) bool {
 
 func logging(level LoggingLevel, format string, args ...any) {
 	if loggingLevel.enabled(level) {
-		log.Printf(level.string()+format, args)
+		log.Printf(level.string()+format, args...)
 	}
 }

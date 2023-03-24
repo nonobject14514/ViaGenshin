@@ -123,7 +123,7 @@ func (s *Session) Forward() error {
 			if err := s.ConvertPayload(
 				s.upstream, s.endpoint, s.config.MainProtocol, s.protocol, payload,
 			); err != nil {
-				logger.Error().Err(err).Msg("Failed to convert upstream payload")
+				logger.Warn().Err(err).Msg("Failed to convert upstream payload")
 			}
 			payload.Release()
 		}

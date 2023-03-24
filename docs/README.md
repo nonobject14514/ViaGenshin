@@ -45,7 +45,7 @@ If you meet any of these, please fix them and submit a pull request. Thanks! If 
 
 Please submit a pull request. Thanks!
 
-## Some showcases
+## Some Showcases
 
 Here are some showcases of the `3.4.0 client` connecting to the `3.2.0 server`, aka., the GIO server.
 

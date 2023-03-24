@@ -51,7 +51,7 @@ func (b *controlData) Message() uint32 {
 }
 
 var controlDataPool = sync.Pool{
-	New: func() any { return new(controlData) },
+	New: func() any { return &controlData{} },
 }
 
 type segmentHead [28]byte
@@ -164,12 +164,12 @@ func loopReadFromUDP(conn *net.UDPConn, onControlData onControlDataFunc, onSegme
 	for {
 		n, addr, err := conn.ReadFromUDP(b)
 		if err != nil {
-			logging(LoggingLevelError, "read error: %v", err)
+			logging(LoggingLevelError, "read error: %v from %s", err, addr)
 			return
 		}
 		// unsafe pointer to avoid copy
 		if n == 20 {
-			logging(LoggingLevelTrace, "received control data %d from %v\n%s", n, addr, hex.Dump(b[:n]))
+			logging(LoggingLevelTrace, "received control data %d from %s: %s", n, addr, hex.EncodeToString(b[:n]))
 			data := (*controlData)(unsafe.Pointer(&b[0]))
 			err = onControlData(data, addr)
 		} else if n >= 28 {
@@ -178,14 +178,14 @@ func loopReadFromUDP(conn *net.UDPConn, onControlData onControlDataFunc, onSegme
 			err = ErrInvalidPacket
 		}
 		if err != nil {
-			logging(LoggingLevelError, "receive error: %v from %v", err, addr)
+			logging(LoggingLevelError, "receive error: %v from %s", err, addr)
 		}
 	}
 }
 
 func writeControlDataToUDP(conn *net.UDPConn, data *controlData, addr *net.UDPAddr) error {
 	_, err := conn.WriteToUDP(data[:], addr)
-	logging(LoggingLevelTrace, "sending control data %d to %v\n%s", len(data), addr, hex.Dump(data[:]))
+	logging(LoggingLevelTrace, "sending control data %d to %s: %s", len(data), addr, hex.EncodeToString(data[:]))
 	return err
 }
 

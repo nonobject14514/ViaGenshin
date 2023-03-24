@@ -43,11 +43,11 @@ func (m *Mapping) loadProtocol(v Protocol, dir string) error {
 		}
 		command, err := strconv.ParseUint(parts[1], 10, 16)
 		if err != nil {
-			logger.Error().Err(err).Msgf("Failed to parse command %s for %s in %s", parts[1], name, v)
+			logger.Warn().Err(err).Msgf("Failed to parse command %s for %s in %s", parts[1], name, v)
 			continue
 		}
 		if err := m.parseCommandDesc(parser, v, name, uint16(command)); err != nil {
-			logger.Error().Err(err).Msgf("Failed to parse command desc for %s in %s", name, v)
+			logger.Warn().Err(err).Msgf("Failed to parse command desc for %s in %s", name, v)
 			continue
 		}
 	}
