@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/jhump/protoreflect/dynamic"
@@ -23,7 +24,7 @@ func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, head, 
 	name := s.mapping.CommandNameMap[from][fromCmd]
 	fromDesc := s.mapping.MessageDescMap[from][name]
 	if fromDesc == nil {
-		return p, fmt.Errorf("unknown from message %s in %s", name, from)
+		return p, fmt.Errorf("unknown from message %s(%d) in %s", name, fromCmd, from)
 	}
 	fromPacket := dynamic.NewMessage(fromDesc)
 	if err := fromPacket.Unmarshal(p); err != nil {
@@ -35,6 +36,9 @@ func (s *Session) ConvertPacket(from, to mapper.Protocol, fromCmd uint16, head, 
 	}
 	toJson, err := s.HandlePacket(from, to, name, head, fromJson)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "injected ") {
+			return p, nil
+		}
 		return p, err
 	}
 	logger.Trace().RawJSON("from", fromJson).RawJSON("to", toJson).Msgf("Packet %s converted from %s to %s", name, from, to)

@@ -20,6 +20,10 @@ func (s *Session) HandlePacket(from, to mapper.Protocol, name string, head, data
 		return s.OnAbilityInvocationsNotify(from, to, data)
 	case "CombatInvocationsNotify":
 		return s.OnCombatInvocationsNotify(from, to, data)
+	case "ClientSetGameTimeReq":
+		return s.OnClientSetGameTimeReq(from, to, head, data)
+	case "ChangeGameTimeRsp":
+		return s.OnChangeGameTimeRsp(from, to, head, data)
 	}
 	if !s.config.Console.Enabled {
 		return data, nil
@@ -29,20 +33,14 @@ func (s *Session) HandlePacket(from, to mapper.Protocol, name string, head, data
 		return s.OnGetPlayerFriendListRsp(from, to, data)
 	case "PrivateChatReq":
 		return s.OnPrivateChatReq(from, to, head, data)
-	case "PrivateChatRsp":
-		return s.OnPrivateChatRsp(from, to, data)
 	case "PullPrivateChatReq":
 		return s.OnPullPrivateChatReq(from, to, data)
-	case "PullPrivateChatRsp":
-		return s.OnPullPrivateChatRsp(from, to, data)
 	case "PullRecentChatReq":
 		return s.OnPullRecentChatReq(from, to, data)
 	case "PullRecentChatRsp":
 		return s.OnPullRecentChatRsp(from, to, data)
 	case "MarkMapReq":
 		return s.OnMarkMapReq(from, to, head, data)
-	case "MarkMapRsp":
-		return s.OnMarkMapRsp(from, to, head, data)
 	}
 	return data, nil
 }

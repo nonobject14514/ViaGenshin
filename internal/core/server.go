@@ -82,11 +82,7 @@ type Session struct {
 	loginKey  *mt19937.KeyBlock
 	playerUid uint32
 
-	injectPrivateChat     bool
-	injectPullPrivateChat bool
-	injectPullRecentChat  bool
-
-	injectMarkMapGoto bool
+	Engine
 }
 
 func newSession(s *Server, endpoint *kcp.Session) *Session {
@@ -117,7 +113,7 @@ func (s *Session) Forward() error {
 			if err := s.ConvertPayload(
 				s.endpoint, s.upstream, s.protocol, s.config.MainProtocol, payload,
 			); err != nil {
-				logger.Error().Err(err).Msg("Failed to convert endpoint payload")
+				logger.Warn().Err(err).Msg("Failed to convert endpoint payload")
 			}
 			payload.Release()
 		}
@@ -165,7 +161,10 @@ func (s *Session) ConvertPayload(
 	}
 	head := b.Next(int(n1))
 	fromData := b.Next(int(n2))
-	toCmd := s.mapping.CommandPairMap[from][to][fromCmd]
+	toCmd := fromCmd
+	if from != to {
+		toCmd = s.mapping.CommandPairMap[from][to][fromCmd]
+	}
 	toData, err := s.ConvertPacket(from, to, fromCmd, head, fromData)
 	if err != nil {
 		return err
@@ -210,7 +209,19 @@ func (s *Session) SendPacket(toSession *kcp.Session, to mapper.Protocol, toCmd u
 }
 
 func (s *Session) SendPacketJSON(toSession *kcp.Session, to mapper.Protocol, name string, toHead, data []byte) error {
-	toCmd := s.mapping.CommandPairMap[s.mapping.BaseProtocol][to][s.mapping.BaseCommands[name]]
+	toCmd := s.mapping.BaseCommands[name]
+	if s.mapping.BaseProtocol != to {
+		if toCmd == 0 {
+			for k, v := range s.mapping.CommandNameMap[to] {
+				if v == name {
+					toCmd = k
+					break
+				}
+			}
+		} else {
+			toCmd = s.mapping.CommandPairMap[s.mapping.BaseProtocol][to][toCmd]
+		}
+	}
 	toDesc := s.mapping.MessageDescMap[to][name]
 	if toDesc == nil {
 		return fmt.Errorf("unknown to message %s in %s", name, to)
@@ -223,5 +234,6 @@ func (s *Session) SendPacketJSON(toSession *kcp.Session, to mapper.Protocol, nam
 	if err != nil {
 		return err
 	}
+	logger.Debug().RawJSON("to", data).Msgf("Sending packet %s(%d) to %s", name, toCmd, to)
 	return s.SendPacket(toSession, to, toCmd, toHead, toData)
 }

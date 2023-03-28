@@ -10,6 +10,11 @@ import (
 	"github.com/Jx2f/ViaGenshin/pkg/transport/kcp"
 )
 
+type Engine struct {
+	cachedPullRecentChat    *PullRecentChatReq
+	cachedClientSetGameTime *ClientSetGameTimeReq
+}
+
 type SystemHint struct {
 	Type int32 `json:"type,omitempty"`
 }
@@ -46,14 +51,18 @@ type PrivateChatReq struct {
 	Icon      uint32 `json:"icon,omitempty"`
 }
 
+type PrivateChatRsp struct {
+	ChatForbiddenEndtime uint32 `json:"chatForbiddenEndtime,omitempty"`
+	Retcode              int32  `json:"retcode,omitempty"`
+}
+
 func (s *Session) OnPrivateChatReq(from, to mapper.Protocol, head, data []byte) ([]byte, error) {
-	packet := new(PrivateChatReq)
-	err := json.Unmarshal(data, &packet)
+	in := new(PrivateChatReq)
+	err := json.Unmarshal(data, &in)
 	if err != nil {
 		return data, err
 	}
-	s.injectPrivateChat = packet.TargetUid == consoleUid
-	if !s.injectPrivateChat {
+	if in.TargetUid != consoleUid {
 		return data, nil
 	}
 	logger.Debug().Msgf("Injecting PrivateChatReq: %s", data)
@@ -61,48 +70,36 @@ func (s *Session) OnPrivateChatReq(from, to mapper.Protocol, head, data []byte) 
 		Time:  uint32(time.Now().Unix()),
 		ToUid: consoleUid,
 		Uid:   s.playerUid,
-		Text:  packet.Text,
-		Icon:  packet.Icon,
+		Text:  in.Text,
+		Icon:  in.Icon,
 	}); err != nil {
 		return data, err
 	}
-	if packet.Text == "" {
+	if in.Text == "" {
 		return data, nil
 	}
-	packet.Text, err = s.ConsoleExecute(1116, s.playerUid, packet.Text)
+	in.Text, err = s.ConsoleExecute(1116, s.playerUid, in.Text)
 	if err != nil {
-		packet.Text = fmt.Sprintf("Failed to execute command: %s", err)
+		in.Text = fmt.Sprintf("Failed to execute command: %s", err)
 	}
-	return data, s.NotifyPrivateChat(s.endpoint, from, head, &ChatInfo{
+	if err = s.NotifyPrivateChat(s.endpoint, from, head, &ChatInfo{
 		Time:  uint32(time.Now().Unix()),
 		ToUid: s.playerUid,
 		Uid:   consoleUid,
-		Text:  packet.Text,
-	})
-}
-
-type PrivateChatRsp struct {
-	ChatForbiddenEndtime uint32 `json:"chatForbiddenEndtime,omitempty"`
-	Retcode              int32  `json:"retcode,omitempty"`
-}
-
-func (s *Session) OnPrivateChatRsp(from, to mapper.Protocol, data []byte) ([]byte, error) {
-	if !s.injectPrivateChat {
-		return data, nil
-	}
-	s.injectPrivateChat = false
-	packet := new(PrivateChatRsp)
-	err := json.Unmarshal(data, &packet)
-	if err != nil {
+		Text:  in.Text,
+	}); err != nil {
 		return data, err
 	}
-	packet.Retcode = 0
-	data, err = json.Marshal(packet)
+	out := new(PrivateChatRsp)
+	p, err := json.Marshal(out)
 	if err != nil {
 		return data, err
 	}
 	logger.Debug().Msgf("Injecting PrivateChatRsp: %s", data)
-	return data, nil
+	if err = s.SendPacketJSON(s.endpoint, to, "PrivateChatRsp", head, p); err != nil {
+		return data, err
+	}
+	return data, fmt.Errorf("injected PrivateChatReq")
 }
 
 type PullPrivateChatReq struct {
@@ -111,48 +108,39 @@ type PullPrivateChatReq struct {
 	BeginSequence uint32 `json:"beginSequence,omitempty"`
 }
 
-func (s *Session) OnPullPrivateChatReq(from, to mapper.Protocol, data []byte) ([]byte, error) {
-	packet := new(PullPrivateChatReq)
-	err := json.Unmarshal(data, &packet)
-	if err != nil {
-		return data, err
-	}
-	s.injectPullPrivateChat = packet.TargetUid == consoleUid
-	if !s.injectPullPrivateChat {
-		return data, nil
-	}
-	logger.Debug().Msgf("Injecting PullPrivateChatReq: %s", data)
-	return data, nil
-}
-
 type PullPrivateChatRsp struct {
 	ChatInfo []*ChatInfo `json:"chatInfo,omitempty"`
 	Retcode  int32       `json:"retcode,omitempty"`
 }
 
-func (s *Session) OnPullPrivateChatRsp(from, to mapper.Protocol, data []byte) ([]byte, error) {
-	if !s.injectPullPrivateChat {
-		return data, nil
-	}
-	s.injectPullPrivateChat = false
-	packet := new(PullPrivateChatRsp)
-	err := json.Unmarshal(data, &packet)
+func (s *Session) OnPullPrivateChatReq(from, to mapper.Protocol, data []byte) ([]byte, error) {
+	in := new(PullPrivateChatReq)
+	err := json.Unmarshal(data, &in)
 	if err != nil {
 		return data, err
 	}
-	packet.ChatInfo = append(packet.ChatInfo, &ChatInfo{
+	if in.TargetUid != consoleUid {
+		return data, nil
+	}
+	logger.Debug().Msgf("Injecting PullPrivateChatReq: %s", data)
+	out := new(PullPrivateChatRsp)
+	err = json.Unmarshal(data, &out)
+	if err != nil {
+		return data, err
+	}
+	out.ChatInfo = append(out.ChatInfo, &ChatInfo{
 		Time:  uint32(time.Now().Unix()),
 		ToUid: s.playerUid,
 		Uid:   consoleUid,
 		Text:  consoleWelcomeText,
 	})
-	packet.Retcode = 0
-	data, err = json.Marshal(packet)
+	out.Retcode = 0
+	p, err := json.Marshal(out)
 	if err != nil {
 		return data, err
 	}
-	logger.Debug().Msgf("Injecting PullPrivateChatRsp: %s", data)
-	return data, nil
+	logger.Debug().Msgf("Injecting PullPrivateChatRsp: %s", p)
+	return data, fmt.Errorf("injected PullPrivateChatReq")
 }
 
 type PullRecentChatReq struct {
@@ -166,10 +154,10 @@ func (s *Session) OnPullRecentChatReq(from, to mapper.Protocol, data []byte) ([]
 	if err != nil {
 		return data, err
 	}
-	s.injectPullRecentChat = packet.BeginSequence == 0
-	if !s.injectPullRecentChat {
+	if packet.BeginSequence != 0 {
 		return data, nil
 	}
+	s.cachedPullRecentChat = packet
 	logger.Debug().Msgf("Injecting PullRecentChatReq: %s", data)
 	return data, nil
 }
@@ -180,10 +168,10 @@ type PullRecentChatRsp struct {
 }
 
 func (s *Session) OnPullRecentChatRsp(from, to mapper.Protocol, data []byte) ([]byte, error) {
-	if !s.injectPullRecentChat {
+	if s.cachedPullRecentChat == nil || s.cachedPullRecentChat.BeginSequence != 0 {
 		return data, nil
 	}
-	s.injectPullRecentChat = false
+	s.cachedPullRecentChat = nil
 	packet := new(PullRecentChatRsp)
 	err := json.Unmarshal(data, &packet)
 	if err != nil {
@@ -267,42 +255,91 @@ func (s *Session) OnMarkMapReq(from, to mapper.Protocol, head, data []byte) ([]b
 	if err != nil {
 		return data, err
 	}
-	s.injectMarkMapGoto = packet.Mark != nil && packet.Mark.Name == "goto" && packet.Mark.Pos != nil
-	if !s.injectMarkMapGoto {
+	if !(packet.Mark != nil && packet.Mark.Name == "goto" && packet.Mark.Pos != nil) {
 		return data, nil
 	}
 	if packet.Mark.Pos.Y == 0 {
 		packet.Mark.Pos.Y = 500
 	}
 	logger.Debug().Msgf("Injecting MarkMapReq: %s", data)
-	s.ConsoleExecute(1116, s.playerUid, fmt.Sprintf("goto %f %f %f", packet.Mark.Pos.X, packet.Mark.Pos.Y, packet.Mark.Pos.Z))
-	packet.Op = -1 // invalid
-	packet.Old = nil
-	packet.Mark = nil
-	return json.Marshal(packet)
-}
-
-type MarkMapRsp struct {
-	Retcode  int32           `json:"retcode,omitempty"`
-	MarkList []*MapMarkPoint `json:"markList,omitempty"`
-}
-
-func (s *Session) OnMarkMapRsp(from, to mapper.Protocol, head, data []byte) ([]byte, error) {
-	packet := new(MarkMapRsp)
-	err := json.Unmarshal(data, &packet)
+	_, err = s.ConsoleExecute(1116, s.playerUid, fmt.Sprintf("goto %f %f %f", packet.Mark.Pos.X, packet.Mark.Pos.Y, packet.Mark.Pos.Z))
 	if err != nil {
 		return data, err
 	}
-	if !s.injectMarkMapGoto {
+	return data, fmt.Errorf("injected MarkMapReq")
+}
+
+type ChangeGameTimeReq struct {
+	IsForceSet bool   `json:"isForceSet,omitempty"`
+	GameTime   uint32 `json:"gameTime,omitempty"`
+	ExtraDays  uint32 `json:"extraDays,omitempty"`
+}
+
+type ClientSetGameTimeReq struct {
+	IsForceSet     bool   `json:"isForceSet,omitempty"`
+	GameTime       uint32 `json:"gameTime,omitempty"`
+	ClientGameTime uint32 `json:"clientGameTime,omitempty"`
+}
+
+func (s *Session) OnClientSetGameTimeReq(from, to mapper.Protocol, head, data []byte) ([]byte, error) {
+	in := new(ClientSetGameTimeReq)
+	err := json.Unmarshal(data, &in)
+	if err != nil {
+		return data, err
+	}
+	s.cachedClientSetGameTime = in
+	out := new(ChangeGameTimeReq)
+	out.IsForceSet = in.IsForceSet
+	out.GameTime = in.GameTime % 1440
+	out.ExtraDays = (in.GameTime - in.ClientGameTime) / 1440
+	p, err := json.Marshal(out)
+	if err != nil {
+		return data, err
+	}
+	logger.Debug().RawJSON("from", data).RawJSON("to", p).
+		Msgf("Rewriting %s: ClientSetGameTimeReq to %s:ChangeGameTimeReq", from, to)
+	err = s.SendPacketJSON(s.upstream, to, "ChangeGameTimeReq", head, p)
+	if err != nil {
+		return data, err
+	}
+	return data, fmt.Errorf("injected ChangeGameTimeReq")
+}
+
+type ChangeGameTimeRsp struct {
+	Retcode   int32  `json:"retcode,omitempty"`
+	GameTime  uint32 `json:"gameTime,omitempty"`
+	ExtraDays uint32 `json:"extraDays,omitempty"`
+}
+
+type ClientSetGameTimeRsp struct {
+	Retcode        int32  `json:"retcode,omitempty"`
+	GameTime       uint32 `json:"gameTime,omitempty"`
+	ClientGameTime uint32 `json:"clientGameTime,omitempty"`
+}
+
+func (s *Session) OnChangeGameTimeRsp(from, to mapper.Protocol, head, data []byte) ([]byte, error) {
+	if s.cachedClientSetGameTime == nil {
 		return data, nil
 	}
-	s.injectMarkMapGoto = false
-	packet.Retcode = 0
-	packet.MarkList = nil
-	data, err = json.Marshal(packet)
+	in := new(ChangeGameTimeRsp)
+	err := json.Unmarshal(data, &in)
 	if err != nil {
 		return data, err
 	}
-	logger.Debug().Msgf("Injecting MarkMapRsp: %s", data)
-	return data, nil
+	logger.Debug().Msgf("Injecting ChangeGameTimeRsp: %s", data)
+	out := new(ClientSetGameTimeRsp)
+	out.GameTime = s.cachedClientSetGameTime.GameTime
+	out.ClientGameTime = s.cachedClientSetGameTime.ClientGameTime
+	s.cachedClientSetGameTime = nil
+	p, err := json.Marshal(out)
+	if err != nil {
+		return data, err
+	}
+	logger.Debug().RawJSON("from", data).RawJSON("to", p).
+		Msgf("Rewriting %s: ChangeGameTimeRsp to %s:ClientSetGameTimeRsp", from, to)
+	err = s.SendPacketJSON(s.endpoint, to, "ClientSetGameTimeRsp", head, p)
+	if err != nil {
+		return data, err
+	}
+	return data, fmt.Errorf("injected ClientSetGameTimeRsp")
 }
