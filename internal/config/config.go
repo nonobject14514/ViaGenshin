@@ -17,6 +17,8 @@ type Config struct {
 type ConfigConsole struct {
 	Enabled      bool   `json:"enabled,omitempty"`
 	MuipEndpoint string `json:"muipEndpoint,omitempty"`
+	MuipRegion   string `json:"muipRegion,omitempty"`
+	MuipSign     string `json:"muipSign,omitempty"`
 }
 
 type ConfigEndpoints struct {
@@ -71,6 +73,8 @@ var DefaultConfig = &Config{
 		Console: &ConfigConsole{
 			Enabled:      false,
 			MuipEndpoint: "http://{{ MUIP_SERVER_ADDRESS }}/api",
+			MuipRegion:   "dev_docker",
+			MuipSign:     "9H2UrJ5J4yZJf95FqMkqi628snEmzvyV9oAp",
 		},
 		Mapping: map[Protocol]string{
 			"{{ CLIENT_VERSION }}": "{{ SERVICE_LISTEN_ADDRESS }}",

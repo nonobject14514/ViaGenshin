@@ -1,11 +1,13 @@
 {
-  "logLevel": "info",
+  "logLevel": "debug",
   "endpoints": {
     "mainEndpoint": "{{ UPSTREAM_SERVER_ADDRESS }}",
     "mainProtocol": "{{ UPSTREAM_SERVER_VERSION }}",
     "console": {
       "enabled": false,
-      "muipEndpoint": "http://{{ MUIP_SERVER_ADDRESS }}/api"
+      "muipEndpoint": "http://{{ MUIP_SERVER_ADDRESS }}/api",
+      "muipRegion": "dev_docker",
+      "muipSign": "9H2UrJ5J4yZJf95FqMkqi628snEmzvyV9oAp"
     },
     "mapping": {
       "{{ CLIENT_VERSION }}": "{{ SERVICE_LISTEN_ADDRESS }}"

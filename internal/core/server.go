@@ -86,7 +86,7 @@ type Session struct {
 	injectPullPrivateChat bool
 	injectPullRecentChat  bool
 
-	injectGmTalk bool
+	injectMarkMapGoto bool
 }
 
 func newSession(s *Server, endpoint *kcp.Session) *Session {

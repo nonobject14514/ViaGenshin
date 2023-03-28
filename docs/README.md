@@ -1,6 +1,7 @@
 # ViaGenshin
 
 > This project is not a production-ready project, it's just a proof of concept. Use it at your own risk.
+> **You can check out the [actions page](https://github.com/Jx2f/ViaGenshin/actions/workflows/build.yml) for the latest build.**
 
 Allows the connection of newer clients to older Genshin servers.
 
@@ -27,7 +28,7 @@ The `data/mapping` folder contains the protocol files and organized in the follo
 
 ### The protobuf files?
 
-Grab them from the open and free Internet. Or write them yourself.
+Grab them from the open and free Internet. Or you can find something in the `data/mapping` folder.
 
 ### How to get the `sharedKey`?
 
@@ -45,18 +46,3 @@ If you meet any of these, please fix them and submit a pull request. Thanks! If 
 ### New features, bug fixes, etc.?
 
 Please submit a pull request. Thanks!
-
-## Some Showcases
-
-Here are some showcases of the `3.4.0 client` connecting to the `3.2.0 server`, aka., the GIO server.
-
-|            |            |            |
-| :--------: | :--------: | :--------: |
-| ![](1.jpg) | ![](2.jpg) | ![](3.jpg) |
-| ![](4.jpg) | ![](5.jpg) | ![](6.jpg) |
-
-More showcases of the `3.5.0 client` connecting to the `3.2.0 server`.
-
-|            |            |            |
-| :--------: | :--------: | :--------: |
-| ![](7.jpg) | ![](8.jpg) | ![](9.jpg) |

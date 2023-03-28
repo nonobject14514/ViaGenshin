@@ -203,3 +203,106 @@ func (s *Session) OnPullRecentChatRsp(from, to mapper.Protocol, data []byte) ([]
 	logger.Debug().Msgf("Injecting PullRecentChatRsp: %s", data)
 	return data, nil
 }
+
+type GetPlayerFriendListRsp struct {
+	Retcode       int32             `json:"retcode,omitempty"`
+	AskFriendList []*map[string]any `json:"askFriendList,omitempty"`
+	FriendList    []*map[string]any `json:"friendList,omitempty"`
+}
+
+func (s *Session) OnGetPlayerFriendListRsp(from, to mapper.Protocol, data []byte) ([]byte, error) {
+	packet := new(GetPlayerFriendListRsp)
+	err := json.Unmarshal(data, &packet)
+	if err != nil {
+		return data, err
+	}
+	packet.FriendList = append(packet.FriendList, &map[string]any{
+		"uid":        consoleUid,
+		"nickname":   consoleNickname,
+		"level":      consoleLevel,
+		"worldLevel": consoleWorldLevel,
+		"signature":  consoleSignature,
+		"nameCardId": consoleNameCardId,
+		"profilePicture": map[string]any{
+			"avatarId":  consoleAvatarId,
+			"costumeId": consoleCostumeId,
+		},
+		"isGameSource": true,
+		"onlineState":  uint32(1),
+		"platformType": uint32(3),
+	})
+	data, err = json.Marshal(packet)
+	if err != nil {
+		return data, err
+	}
+	logger.Debug().Msgf("Injecting GetPlayerFriendListRsp: %s", data)
+	return data, nil
+}
+
+type Vector struct {
+	X float32 `json:"x,omitempty"`
+	Y float32 `json:"y,omitempty"`
+	Z float32 `json:"z,omitempty"`
+}
+
+type MapMarkPoint struct {
+	SceneID   uint32  `json:"sceneId,omitempty"`
+	Name      string  `json:"name,omitempty"`
+	Pos       *Vector `json:"pos,omitempty"`
+	PointType int32   `json:"pointType,omitempty"`
+	MonsterID uint32  `json:"monsterId,omitempty"`
+	FromType  int32   `json:"fromType,omitempty"`
+	QuestID   uint32  `json:"questId,omitempty"`
+}
+
+type MarkMapReq struct {
+	Op   int32         `json:"op,omitempty"`
+	Old  *MapMarkPoint `json:"old,omitempty"`
+	Mark *MapMarkPoint `json:"mark,omitempty"`
+}
+
+func (s *Session) OnMarkMapReq(from, to mapper.Protocol, head, data []byte) ([]byte, error) {
+	packet := new(MarkMapReq)
+	err := json.Unmarshal(data, &packet)
+	if err != nil {
+		return data, err
+	}
+	s.injectMarkMapGoto = packet.Mark != nil && packet.Mark.Name == "goto" && packet.Mark.Pos != nil
+	if !s.injectMarkMapGoto {
+		return data, nil
+	}
+	if packet.Mark.Pos.Y == 0 {
+		packet.Mark.Pos.Y = 500
+	}
+	logger.Debug().Msgf("Injecting MarkMapReq: %s", data)
+	s.ConsoleExecute(1116, s.playerUid, fmt.Sprintf("goto %f %f %f", packet.Mark.Pos.X, packet.Mark.Pos.Y, packet.Mark.Pos.Z))
+	packet.Op = -1 // invalid
+	packet.Old = nil
+	packet.Mark = nil
+	return json.Marshal(packet)
+}
+
+type MarkMapRsp struct {
+	Retcode  int32           `json:"retcode,omitempty"`
+	MarkList []*MapMarkPoint `json:"markList,omitempty"`
+}
+
+func (s *Session) OnMarkMapRsp(from, to mapper.Protocol, head, data []byte) ([]byte, error) {
+	packet := new(MarkMapRsp)
+	err := json.Unmarshal(data, &packet)
+	if err != nil {
+		return data, err
+	}
+	if !s.injectMarkMapGoto {
+		return data, nil
+	}
+	s.injectMarkMapGoto = false
+	packet.Retcode = 0
+	packet.MarkList = nil
+	data, err = json.Marshal(packet)
+	if err != nil {
+		return data, err
+	}
+	logger.Debug().Msgf("Injecting MarkMapRsp: %s", data)
+	return data, nil
+}

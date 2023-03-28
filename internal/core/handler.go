@@ -39,6 +39,10 @@ func (s *Session) HandlePacket(from, to mapper.Protocol, name string, head, data
 		return s.OnPullRecentChatReq(from, to, data)
 	case "PullRecentChatRsp":
 		return s.OnPullRecentChatRsp(from, to, data)
+	case "MarkMapReq":
+		return s.OnMarkMapReq(from, to, head, data)
+	case "MarkMapRsp":
+		return s.OnMarkMapRsp(from, to, head, data)
 	}
 	return data, nil
 }
