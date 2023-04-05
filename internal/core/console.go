@@ -14,15 +14,15 @@ import (
 )
 
 const (
-	consoleUid         = uint32(99)
-	consoleNickname    = "Console"
+	consoleUid         = uint32(1)
+	consoleNickname    = "望星忆君"
 	consoleLevel       = uint32(60)
 	consoleWorldLevel  = uint32(8)
 	consoleSignature   = ""
 	consoleNameCardId  = uint32(210001)
-	consoleAvatarId    = uint32(10000007)
+	consoleAvatarId    = uint32(10000077)
 	consoleCostumeId   = uint32(0)
-	consoleWelcomeText = "You can type GM commands here."
+	consoleWelcomeText = "望星开发服 gio 3.4 dev 进度缓慢，推荐出门左转前往桜开发服"
 )
 
 type MuipResponseBody struct {
