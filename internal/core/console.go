@@ -22,7 +22,7 @@ const (
 	consoleNameCardId  = uint32(210001)
 	consoleAvatarId    = uint32(10000077)
 	consoleCostumeId   = uint32(0)
-	consoleWelcomeText = "望星开发服 gio 3.4 dev 进度缓慢，推荐出门左转前往桜开发服"
+	consoleWelcomeText = "望星开发服 gio 3.4 dev \n进度缓慢，推荐出门左转前往桜开发服"
 )
 
 type MuipResponseBody struct {
@@ -57,7 +57,7 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 	logger.Debug().Msgf("Muip 响应: %s", uri)
 	resp, err := http.Get(uri)
 	if err != nil {
-		return "Muip 响应: %s" + "温馨提示" + consoleWelcomeText, err
+		return "Muip 响应: %s" + "\n温馨提示" + consoleWelcomeText, err
 	}
 	defer resp.Body.Close()
 	p, err := io.ReadAll(resp.Body)
@@ -66,14 +66,17 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 	}
 	logger.Debug().Msgf("Muip 响应: %s", string(p))
 	if resp.StatusCode != 200 {
-		return "Muip 响应: %s" + "温馨提示" + consoleWelcomeText, fmt.Errorf("状态码: %d", resp.StatusCode)
+		return "Muip 响应: %s" + "\n温馨提示" + consoleWelcomeText, fmt.Errorf("状态码: %d", resp.StatusCode)
 	}
 	body := new(MuipResponseBody)
 	if err := json.Unmarshal(p, body); err != nil {
 		return "", err
 	}
-	if body.Retcode != 0 {
-		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + "温馨提示" + consoleWelcomeText + "cmd=%d", nil
+	if (text == "help") {
+		return "gm指令往此输入", nil
 	}
-	return "执行命令成功: " + body.Data.Msg + "温馨提示" + consoleWelcomeText, nil
+	if body.Retcode != 0 {
+		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + "\n温馨提示" + consoleWelcomeText, nil
+	}
+	return "执行命令成功: " + body.Data.Msg + "\n温馨提示" + consoleWelcomeText, nil
 }
