@@ -57,7 +57,7 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 	logger.Debug().Msgf("Muip 响应: %s", uri)
 	resp, err := http.Get(uri)
 	if err != nil {
-		return "", err
+		return "Muip 响应: %s" + "温馨提示" + consoleWelcomeText, err
 	}
 	defer resp.Body.Close()
 	p, err := io.ReadAll(resp.Body)
@@ -66,14 +66,14 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 	}
 	logger.Debug().Msgf("Muip 响应: %s", string(p))
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("状态码: %d", resp.StatusCode)
+		return "Muip 响应: %s" + "温馨提示" + consoleWelcomeText, fmt.Errorf("状态码: %d", resp.StatusCode)
 	}
 	body := new(MuipResponseBody)
 	if err := json.Unmarshal(p, body); err != nil {
 		return "", err
 	}
 	if body.Retcode != 0 {
-		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + body.Data.Msg, nil
+		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + "温馨提示" + consoleWelcomeText, nil
 	}
-	return "执行命令成功: " + body.Data.Msg, nil
+	return "执行命令成功: " + body.Data.Msg + "温馨提示" + consoleWelcomeText, nil
 }
