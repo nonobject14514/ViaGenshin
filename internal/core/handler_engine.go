@@ -80,7 +80,7 @@ func (s *Session) OnPrivateChatReq(from, to mapper.Protocol, head, data []byte) 
 	}
 	in.Text, err = s.ConsoleExecute(1116, s.playerUid, in.Text)
 	if err != nil {
-		in.Text = fmt.Sprintf("Failed to execute command: %s", err)
+		in.Text = fmt.Sprintf("执行命令失败: %s", err)
 	}
 	if err = s.NotifyPrivateChat(s.endpoint, from, head, &ChatInfo{
 		Time:  uint32(time.Now().Unix()),

@@ -36,7 +36,7 @@ type MuipResponseBody struct {
 }
 
 func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
-	logger.Info().Uint32("uid", uid).Msgf("ConsoleExecute: %s", text)
+	logger.Info().Uint32("uid", uid).Msgf("控制台执行: %s", text)
 	var values []string
 	values = append(values, fmt.Sprintf("cmd=%d", cmd))
 	values = append(values, fmt.Sprintf("uid=%d", uid))
@@ -44,7 +44,7 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 	values = append(values, fmt.Sprintf("region=%s", s.config.Console.MuipRegion))
 	ticket := make([]byte, 16)
 	if _, err := rand.Read(ticket); err != nil {
-		return "", fmt.Errorf("failed to generate ticket: %w", err)
+		return "", fmt.Errorf("无法生成 ticket: %w", err)
 	}
 	values = append(values, fmt.Sprintf("ticket=%x", ticket))
 	if s.config.Console.MuipSign != "" {
@@ -54,7 +54,7 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 		values = append(values, fmt.Sprintf("sign=%x", shaSum.Sum(nil)))
 	}
 	uri := s.config.Console.MuipEndpoint + "?" + strings.ReplaceAll(strings.Join(values, "&"), " ", "+")
-	logger.Debug().Msgf("Muip request: %s", uri)
+	logger.Debug().Msgf("Muip 响应: %s", uri)
 	resp, err := http.Get(uri)
 	if err != nil {
 		return "", err
@@ -64,16 +64,16 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logger.Debug().Msgf("Muip response: %s", string(p))
+	logger.Debug().Msgf("Muip 响应: %s", string(p))
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return "", fmt.Errorf("状态码: %d", resp.StatusCode)
 	}
 	body := new(MuipResponseBody)
 	if err := json.Unmarshal(p, body); err != nil {
 		return "", err
 	}
 	if body.Retcode != 0 {
-		return "Failed to execute command: " + body.Data.Msg + ", error: " + body.Msg + body.Data.Msg, nil
+		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + body.Data.Msg, nil
 	}
-	return "Successfully executed command: " + body.Data.Msg, nil
+	return "执行命令成功: " + body.Data.Msg, nil
 }
