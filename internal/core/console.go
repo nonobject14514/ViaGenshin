@@ -73,7 +73,7 @@ func (s *Server) ConsoleExecute(cmd, uid uint32, text string) (string, error) {
 		return "", err
 	}
 	if body.Retcode != 0 {
-		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + "温馨提示" + consoleWelcomeText, nil
+		return "执行命令失败: " + body.Data.Msg + ", 错误: " + body.Msg + "温馨提示" + consoleWelcomeText + "cmd=%d", nil
 	}
 	return "执行命令成功: " + body.Data.Msg + "温馨提示" + consoleWelcomeText, nil
 }
